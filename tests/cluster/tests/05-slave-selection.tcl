@@ -14,7 +14,23 @@ test "Cluster is up" {
 }
 
 test "The first master has actually two slaves" {
-    assert {[llength [lindex [R 0 role] 2]] == 2}
+    wait_for_condition 1000 50 {
+        [llength [lindex [R 0 role] 2]] == 2
+        && [llength [R 0 cluster replicas [R 0 CLUSTER MYID]]] == 2
+    } else {
+        fail "replicas didn't connect"
+    }
+}
+
+test "CLUSTER SLAVES and CLUSTER REPLICAS output is consistent" {
+    # Because we already have command output that cover CLUSTER REPLICAS elsewhere,
+    # here we simply judge whether their output is consistent to cover CLUSTER SLAVES.
+    set myid [R 0 CLUSTER MYID]
+    R 0 multi
+    R 0 cluster slaves $myid
+    R 0 cluster replicas $myid
+    lassign [R 0 exec] res res2
+    assert_equal $res $res2
 }
 
 test {Slaves of #0 are instance #5 and #10 as expected} {
@@ -106,7 +122,11 @@ test "Cluster is up" {
 }
 
 test "The first master has actually 5 slaves" {
-    assert {[llength [lindex [R 0 role] 2]] == 5}
+    wait_for_condition 1000 50 {
+        [llength [lindex [R 0 role] 2]] == 5
+    } else {
+        fail "replicas didn't connect"
+    }
 }
 
 test {Slaves of #0 are instance #3, #6, #9, #12 and #15 as expected} {
@@ -163,7 +183,7 @@ test "New Master down consecutively" {
         wait_for_condition 1000 50 {
             [master_detected $instances]
         } else {
-            failover "No failover detected when master $master_id fails"
+            fail "No failover detected when master $master_id fails"
         }
 
         assert_cluster_state ok

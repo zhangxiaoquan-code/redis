@@ -5,35 +5,13 @@
  *
  * -----------------------------------------------------------------------------
  *
- * Copyright (c) 2018, Salvatore Sanfilippo <antirez at gmail dot com>
+ * Copyright (c) 2018-Present, Redis Ltd.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Licensed under your choice of the Redis Source Available License 2.0
+ * (RSALv2) or the Server Side Public License v1 (SSPLv1).
  */
 
-#define REDISMODULE_EXPERIMENTAL_API
 #include "../redismodule.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,8 +66,8 @@ int cmd_KEYRANGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     /* Reply with the matching items. */
     char *key;
     size_t keylen;
-    long long replylen = 0; /* Keep track of the amitted array len. */
-    RedisModule_ReplyWithArray(ctx,REDISMODULE_POSTPONED_ARRAY_LEN);
+    long long replylen = 0; /* Keep track of the emitted array len. */
+    RedisModule_ReplyWithArray(ctx,REDISMODULE_POSTPONED_LEN);
     while((key = RedisModule_DictNextC(iter,&keylen,NULL)) != NULL) {
         if (replylen >= count) break;
         if (RedisModule_DictCompare(iter,"<=",argv[2]) == REDISMODULE_ERR)
@@ -125,7 +103,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
         cmd_KEYRANGE,"readonly",1,1,0) == REDISMODULE_ERR)
         return REDISMODULE_ERR;
 
-    /* Create our global dictionray. Here we'll set our keys and values. */
+    /* Create our global dictionary. Here we'll set our keys and values. */
     Keyspace = RedisModule_CreateDict(NULL);
 
     return REDISMODULE_OK;

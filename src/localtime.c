@@ -1,30 +1,9 @@
 /*
- * Copyright (c) 2018, Salvatore Sanfilippo <antirez at gmail dot com>
+ * Copyright (c) 2018-Present, Redis Ltd.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Licensed under your choice of the Redis Source Available License 2.0
+ * (RSALv2) or the Server Side Public License v1 (SSPLv1).
  */
 
 #include <time.h>
@@ -52,8 +31,8 @@
 static int is_leap_year(time_t year) {
     if (year % 4) return 0;         /* A year not divisible by 4 is not leap. */
     else if (year % 100) return 1;  /* If div by 4 and not 100 is surely leap. */
-    else if (year % 400) return 0;  /* If div by 100 *and* 400 is not leap. */
-    else return 1;                  /* If div by 100 and not by 400 is leap. */
+    else if (year % 400) return 0;  /* If div by 100 *and* not by 400 is not leap. */
+    else return 1;                  /* If div by 100 and 400 is leap. */
 }
 
 void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
@@ -108,7 +87,7 @@ void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst) {
 
 int main(void) {
     /* Obtain timezone and daylight info. */
-    tzset(); /* Now 'timezome' global is populated. */
+    tzset(); /* Now 'timezone' global is populated. */
     time_t t = time(NULL);
     struct tm *aux = localtime(&t);
     int daylight_active = aux->tm_isdst;

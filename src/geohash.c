@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2013-2014, yinqiwen <yinqiwen@gmail.com>
  * Copyright (c) 2014, Matt Stancliff <matt@genges.com>.
- * Copyright (c) 2015-2016, Salvatore Sanfilippo <antirez@gmail.com>.
+ * Copyright (c) 2015-current, Redis Ltd.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@
 
 /* Interleave lower bits of x and y, so the bits of x
  * are in the even positions and bits from y in the odd;
- * x and y must initially be less than 2**32 (65536).
+ * x and y must initially be less than 2**32 (4294967296).
  * From:  https://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
  */
 static inline uint64_t interleave64(uint32_t xlo, uint32_t ylo) {
@@ -206,7 +206,11 @@ int geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea *area) {
 int geohashDecodeAreaToLongLat(const GeoHashArea *area, double *xy) {
     if (!xy) return 0;
     xy[0] = (area->longitude.min + area->longitude.max) / 2;
+    if (xy[0] > GEO_LONG_MAX) xy[0] = GEO_LONG_MAX;
+    if (xy[0] < GEO_LONG_MIN) xy[0] = GEO_LONG_MIN;
     xy[1] = (area->latitude.min + area->latitude.max) / 2;
+    if (xy[1] > GEO_LAT_MAX) xy[1] = GEO_LAT_MAX;
+    if (xy[1] < GEO_LAT_MIN) xy[1] = GEO_LAT_MIN;
     return 1;
 }
 

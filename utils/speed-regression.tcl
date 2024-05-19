@@ -1,6 +1,8 @@
 #!/usr/bin/env tclsh8.5
-# Copyright (C) 2011 Salvatore Sanfilippo
-# Released under the BSD license like Redis itself
+# Copyright (C) 2011-Present Redis Ltd. All rights reserved.
+#
+# Licensed under your choice of the Redis Source Available License 2.0
+# (RSALv2) or the Server Side Public License v1 (SSPLv1).
 
 source ../tests/support/redis.tcl
 set ::port 12123
@@ -101,7 +103,7 @@ if {![file exists speed-regression.tcl]} {
     exit 1
 }
 
-# Make sure there is not already a server runnign on port 12123
+# Make sure there is not already a server running on port 12123
 set is_not_running [catch {set r [redis 127.0.0.1 $::port]}]
 if {!$is_not_running} {
     puts "Sorry, you have a running server on port $::port"

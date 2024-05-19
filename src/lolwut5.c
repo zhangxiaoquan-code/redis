@@ -1,30 +1,9 @@
 /*
- * Copyright (c) 2018, Salvatore Sanfilippo <antirez at gmail dot com>
+ * Copyright (c) 2018-Present, Redis Ltd.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the name of Redis nor the names of its contributors may be used
- *     to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Licensed under your choice of the Redis Source Available License 2.0
+ * (RSALv2) or the Server Side Public License v1 (SSPLv1).
  *
  * ----------------------------------------------------------------------------
  *
@@ -34,16 +13,8 @@
  */
 
 #include "server.h"
+#include "lolwut.h"
 #include <math.h>
-
-/* This structure represents our canvas. Drawing functions will take a pointer
- * to a canvas to write to it. Later the canvas can be rendered to a string
- * suitable to be printed on the screen, using unicode Braille characters. */
-typedef struct lwCanvas {
-    int width;
-    int height;
-    char *pixels;
-} lwCanvas;
 
 /* Translate a group of 8 pixels (2x4 vertical rectangle) to the corresponding
  * braille character. The byte should correspond to the pixels arranged as
@@ -69,104 +40,6 @@ void lwTranslatePixelsGroup(int byte, char *output) {
     output[2] = 0x80 | (code & 0x3F);         /* 10-xxxxxx */
 }
 
-/* Allocate and return a new canvas of the specified size. */
-lwCanvas *lwCreateCanvas(int width, int height) {
-    lwCanvas *canvas = zmalloc(sizeof(*canvas));
-    canvas->width = width;
-    canvas->height = height;
-    canvas->pixels = zmalloc(width*height);
-    memset(canvas->pixels,0,width*height);
-    return canvas;
-}
-
-/* Free the canvas created by lwCreateCanvas(). */
-void lwFreeCanvas(lwCanvas *canvas) {
-    zfree(canvas->pixels);
-    zfree(canvas);
-}
-
-/* Set a pixel to the specified color. Color is 0 or 1, where zero means no
- * dot will be displyed, and 1 means dot will be displayed.
- * Coordinates are arranged so that left-top corner is 0,0. You can write
- * out of the size of the canvas without issues. */
-void lwDrawPixel(lwCanvas *canvas, int x, int y, int color) {
-    if (x < 0 || x >= canvas->width ||
-        y < 0 || y >= canvas->height) return;
-    canvas->pixels[x+y*canvas->width] = color;
-}
-
-/* Return the value of the specified pixel on the canvas. */
-int lwGetPixel(lwCanvas *canvas, int x, int y) {
-    if (x < 0 || x >= canvas->width ||
-        y < 0 || y >= canvas->height) return 0;
-    return canvas->pixels[x+y*canvas->width];
-}
-
-/* Draw a line from x1,y1 to x2,y2 using the Bresenham algorithm. */
-void lwDrawLine(lwCanvas *canvas, int x1, int y1, int x2, int y2, int color) {
-    int dx = abs(x2-x1);
-    int dy = abs(y2-y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-    int err = dx-dy, e2;
-
-    while(1) {
-        lwDrawPixel(canvas,x1,y1,color);
-        if (x1 == x2 && y1 == y2) break;
-        e2 = err*2;
-        if (e2 > -dy) {
-            err -= dy;
-            x1 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y1 += sy;
-        }
-    }
-}
-
-/* Draw a square centered at the specified x,y coordinates, with the specified
- * rotation angle and size. In order to write a rotated square, we use the
- * trivial fact that the parametric equation:
- *
- *  x = sin(k)
- *  y = cos(k)
- *
- * Describes a circle for values going from 0 to 2*PI. So basically if we start
- * at 45 degrees, that is k = PI/4, with the first point, and then we find
- * the other three points incrementing K by PI/2 (90 degrees), we'll have the
- * points of the square. In order to rotate the square, we just start with
- * k = PI/4 + rotation_angle, and we are done.
- *
- * Of course the vanilla equations above will describe the square inside a
- * circle of radius 1, so in order to draw larger squares we'll have to
- * multiply the obtained coordinates, and then translate them. However this
- * is much simpler than implementing the abstract concept of 2D shape and then
- * performing the rotation/translation transformation, so for LOLWUT it's
- * a good approach. */
-void lwDrawSquare(lwCanvas *canvas, int x, int y, float size, float angle) {
-    int px[4], py[4];
-
-    /* Adjust the desired size according to the fact that the square inscribed
-     * into a circle of radius 1 has the side of length SQRT(2). This way
-     * size becomes a simple multiplication factor we can use with our
-     * coordinates to magnify them. */
-    size /= 1.4142135623;
-    size = round(size);
-
-    /* Compute the four points. */
-    float k = M_PI/4 + angle;
-    for (int j = 0; j < 4; j++) {
-        px[j] = round(sin(k) * size + x);
-        py[j] = round(cos(k) * size + y);
-        k += M_PI/2;
-    }
-
-    /* Draw the square. */
-    for (int j = 0; j < 4; j++)
-        lwDrawLine(canvas,px[j],py[j],px[(j+1)%4],py[(j+1)%4],1);
-}
-
 /* Schotter, the output of LOLWUT of Redis 5, is a computer graphic art piece
  * generated by Georg Nees in the 60s. It explores the relationship between
  * caos and order.
@@ -180,7 +53,7 @@ lwCanvas *lwDrawSchotter(int console_cols, int squares_per_row, int squares_per_
     int padding = canvas_width > 4 ? 2 : 0;
     float square_side = (float)(canvas_width-padding*2) / squares_per_row;
     int canvas_height = square_side * squares_per_col + padding*2;
-    lwCanvas *canvas = lwCreateCanvas(canvas_width, canvas_height);
+    lwCanvas *canvas = lwCreateCanvas(canvas_width, canvas_height, 0);
 
     for (int y = 0; y < squares_per_col; y++) {
         for (int x = 0; x < squares_per_row; x++) {
@@ -190,9 +63,9 @@ lwCanvas *lwDrawSchotter(int console_cols, int squares_per_row, int squares_per_
              * rows. */
             float angle = 0;
             if (y > 1) {
-                float r1 = (float)rand() / RAND_MAX / squares_per_col * y;
-                float r2 = (float)rand() / RAND_MAX / squares_per_col * y;
-                float r3 = (float)rand() / RAND_MAX / squares_per_col * y;
+                float r1 = (float)rand() / (float) RAND_MAX / squares_per_col * y;
+                float r2 = (float)rand() / (float) RAND_MAX / squares_per_col * y;
+                float r3 = (float)rand() / (float) RAND_MAX / squares_per_col * y;
                 if (rand() % 2) r1 = -r1;
                 if (rand() % 2) r2 = -r2;
                 if (rand() % 2) r3 = -r3;
@@ -200,7 +73,7 @@ lwCanvas *lwDrawSchotter(int console_cols, int squares_per_row, int squares_per_
                 sx += r2*square_side/3;
                 sy += r3*square_side/3;
             }
-            lwDrawSquare(canvas,sx,sy,square_side,angle);
+            lwDrawSquare(canvas,sx,sy,square_side,angle,1);
         }
     }
 
@@ -208,11 +81,11 @@ lwCanvas *lwDrawSchotter(int console_cols, int squares_per_row, int squares_per_
 }
 
 /* Converts the canvas to an SDS string representing the UTF8 characters to
- * print to the terminal in order to obtain a graphical representaiton of the
+ * print to the terminal in order to obtain a graphical representation of the
  * logical canvas. The actual returned string will require a terminal that is
  * width/2 large and height/4 tall in order to hold the whole image without
  * overflowing or scrolling, since each Barille character is 2x4. */
-sds lwRenderCanvas(lwCanvas *canvas) {
+static sds renderCanvas(lwCanvas *canvas) {
     sds text = sdsempty();
     for (int y = 0; y < canvas->height; y += 4) {
         for (int x = 0; x < canvas->width; x += 2) {
@@ -262,7 +135,7 @@ void lolwut5Command(client *c) {
         return;
 
     /* Limits. We want LOLWUT to be always reasonably fast and cheap to execute
-     * so we have maximum number of columns, rows, and output resulution. */
+     * so we have maximum number of columns, rows, and output resolution. */
     if (cols < 1) cols = 1;
     if (cols > 1000) cols = 1000;
     if (squares_per_row < 1) squares_per_row = 1;
@@ -272,11 +145,12 @@ void lolwut5Command(client *c) {
 
     /* Generate some computer art and reply. */
     lwCanvas *canvas = lwDrawSchotter(cols,squares_per_row,squares_per_col);
-    sds rendered = lwRenderCanvas(canvas);
+    sds rendered = renderCanvas(canvas);
     rendered = sdscat(rendered,
         "\nGeorg Nees - schotter, plotter on paper, 1968. Redis ver. ");
     rendered = sdscat(rendered,REDIS_VERSION);
     rendered = sdscatlen(rendered,"\n",1);
-    addReplyBulkSds(c,rendered);
+    addReplyVerbatim(c,rendered,sdslen(rendered),"txt");
+    sdsfree(rendered);
     lwFreeCanvas(canvas);
 }
